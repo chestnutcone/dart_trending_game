@@ -9,6 +9,7 @@ class HttpService {
 
     if (res.statusCode == 200) {
       Suggestion suggestion = Suggestion.fromXML(res.body);
+      print('returning from http');
       return suggestion;
     } else {
       throw "Unable to retrieve suggestions from google";
