@@ -71,6 +71,34 @@ class _HomePageState extends State<HomePage> {
     return rows;
   }
 
+  void _checkScore () {
+    print('check score triggered');
+    List<int> positions = _showData.map((word) => _allData.indexOf(word)).toList();
+    int steps = _insertionSort(positions);
+    int n = positions.length;
+    int worst_case = n * n;
+    int score = worst_case - steps;
+    print("score $score");
+  }
+
+  int _insertionSort (List<int> arr) {
+    // returns how many steps needed to sort the arr via insertion sort
+    int steps = 0;
+
+    for (int i=1; i<arr.length; i++) {
+      int key = arr[i];
+      int j = i - 1;
+      while (j >= 0 && key < arr[j]) {
+        arr[j+1] = arr[j];
+        j -= 1;
+        steps += 1;
+      }
+      arr[j+1] = key;
+
+    }
+    return steps;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -109,6 +137,12 @@ class _HomePageState extends State<HomePage> {
                     dragStartBehavior: DragStartBehavior.down,
                     children: _makeRows()))
           ],
-        ));
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _checkScore,
+          tooltip: 'Enter',
+          child: Icon(Icons.check)
+        ),
+    );
   }
 }
