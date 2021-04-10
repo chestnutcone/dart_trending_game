@@ -26,11 +26,12 @@ class _HomePageState extends State<HomePage> {
     2: 200,
     3: 300
   };
-  final List<String> phrasesDB = ['hi', 'how are you', 'what is a', 'covid is', 'unlike what'];
+  //final List<String> phrasesDB = ['hi', 'how are you', 'what is a', 'covid is', 'unlike what'];
+  final List<String> phrasesDB = ['hi', 'asidjaosdji'];
+  Map<String, String> phraseLevel2 = new Map(); // keep track of first suggestion of a phrase (ie first suggestion of first suggestion)
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _nextRound();
   }
@@ -50,10 +51,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _buildSuggestion() async {
-    print('build suggestion');
     await _getSuggestion();
-    print('after got suggestion');
     _setShowData(_allData);
+    phraseLevel2 = new Map<String, String>();
+    for (int i=0; i<_showData.length; i++) {
+      await _getSuggestion2(_showData[i]);
+    }
     print(_allData);
     print(_showData);
     print('setting state');
@@ -65,10 +68,31 @@ class _HomePageState extends State<HomePage> {
   Future<void> _getSuggestion() async {
     print('starting get suggestion');
     var res = await httpService.getSuggestions(query);
+    int maxLoopDepth = 100;
+    int loopCount = 0;
+    while (res.candidates.length == 0) {
+      // try new query
+      this.query = _getRandomQuery();
+      res = await httpService.getSuggestions(query);
+      loopCount += 1;
+      if (loopCount > maxLoopDepth) {
+        throw Exception("Unreasonable max loop depth");
+      }
+    }
+
     print('raw list: ');
     print(res.candidates);
     _allData = res.candidates;
   }
+
+  Future<void> _getSuggestion2(phrase) async {
+    // get first suggestion of a suggestion
+    var res = await httpService.getSuggestions(phrase);
+    var firstSuggestion = res.candidates.isNotEmpty ? res.candidates[1] : '';
+    phraseLevel2[phrase] = firstSuggestion;
+  }
+
+
 
   void _setShowData(List<String> data) {
     _showData = [];
@@ -92,7 +116,8 @@ class _HomePageState extends State<HomePage> {
     for (int idx = 0; idx < _showData.length; idx++) {
       String phrase = _showData[idx];
       var colorLevel = card_color[idxMap[_allData.indexOf(phrase)]];
-      var row = ListViewCard(phrase, idx, this.reorderable, colorLevel, ValueKey(phrase));
+      String description = phraseLevel2[phrase] ?? "";
+      var row = ListViewCard(phrase, idx, description,reorderable, colorLevel, ValueKey(phrase));
       rows.add(row);
     }
     return rows;
@@ -119,6 +144,7 @@ class _HomePageState extends State<HomePage> {
   void _nextRound() {
     // generate new word and set state
     this.reorderable = true;
+    this.session_number += 1;
     this.query = _getRandomQuery();
     setState(() {
       _buildSuggestion();

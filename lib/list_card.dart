@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 class ListViewCard extends StatefulWidget {
   final String phrase;
+  final String description;
   final int index;
   final Key key;
   final bool reorderable;
   final colorLevel;
 
-  ListViewCard(this.phrase, this.index, this.reorderable, this.colorLevel, this.key);
+  ListViewCard(this.phrase, this.index, this.description, this.reorderable, this.colorLevel, this.key);
 
   @override
   _ListViewCard createState() => _ListViewCard();
@@ -62,7 +63,7 @@ class _ListViewCard extends State<ListViewCard> {
                     padding: const EdgeInsets.all(8.0),
                     alignment: Alignment.topLeft,
                     child: Text(
-                      'Description ${widget.phrase}',
+                      widget.description,
                       style: TextStyle(
                           fontWeight: FontWeight.normal, fontSize: 16),
                       textAlign: TextAlign.left,
