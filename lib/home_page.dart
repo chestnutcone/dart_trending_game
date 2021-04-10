@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:test_http/main.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'http_service.dart';
 import 'list_card.dart';
 
@@ -25,12 +26,19 @@ class _HomePageState extends State<HomePage> {
   List<String> _showData = [];
   bool reorderable = true;
   final card_color = {0: 50, 1: 100, 2: 200, 3: 300};
-  final List<String> phrasesDB = ['hi', 'how are you', 'what is a', 'covid is', 'unlike what'];
+  late final List<String> phrasesDB;
+  // final List<String> phrasesDB = ['hi', 'anyhting', 'is'];
   Map<String, String> phraseLevel2 = new Map(); // keep track of first suggestion of a phrase (ie first suggestion of first suggestion)
 
   @override
   void initState() {
     super.initState();
+    _setup();
+  }
+
+  void _setup () async {
+    String csv = await rootBundle.loadString('assets/query2.csv');
+    phrasesDB = csv.split(',');
     _nextRound();
   }
 
@@ -52,9 +60,8 @@ class _HomePageState extends State<HomePage> {
     await _getSuggestion();
     _setShowData(_allData);
     phraseLevel2 = new Map<String, String>();
-    for (int i = 0; i < _showData.length; i++) {
-      await _getSuggestion2(_showData[i]);
-    }
+    await _getSuggestion2();
+
     setState(() {
       loading = false;
     });
@@ -74,14 +81,23 @@ class _HomePageState extends State<HomePage> {
         throw Exception("Unreasonable max loop depth");
       }
     }
+    print('final query: '+query);
     _allData = res.candidates;
   }
 
-  Future<void> _getSuggestion2(phrase) async {
+  Future<void> _getSuggestion2() async {
     // get first suggestion of a suggestion
-    var res = await httpService.getSuggestions(phrase);
-    var firstSuggestion = res.candidates.length > 1 ? res.candidates[1] : '';
-    phraseLevel2[phrase] = firstSuggestion;
+    List<Future> asyncList = [];
+    for (int i = 0; i < _showData.length; i++) {
+      asyncList.add(httpService.getSuggestions(_showData[i]));
+    }
+    List responses = await Future.wait(asyncList);
+    for (int i = 0; i < _showData.length; i++) {
+      var res = responses[i];
+      String phrase = _showData[i];
+      var firstSuggestion = res.candidates.length > 1 ? res.candidates[1] : '';
+      phraseLevel2[phrase] = firstSuggestion;
+    }
   }
 
   void _setShowData(List<String> data) {
@@ -97,7 +113,6 @@ class _HomePageState extends State<HomePage> {
     idxs.forEach((idx) {
       _showData.add(data[idx]);
     });
-    print(_showData);
   }
 
   List<Widget> _makeRows() {
@@ -170,7 +185,6 @@ class _HomePageState extends State<HomePage> {
 
   void _checkScore() {
     this.reorderable = false;
-    print('check score triggered');
 
     List<int> positions =
         _showData.map((word) => _allData.indexOf(word)).toList();
@@ -179,7 +193,6 @@ class _HomePageState extends State<HomePage> {
     int worstCase = (0.5 * (n - 1) * (n)).round();
     maxScore += worstCase;
     int score = worstCase - steps;
-    print("score $score");
 
     setState(() {
       session_score += score;
