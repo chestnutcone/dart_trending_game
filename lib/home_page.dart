@@ -18,7 +18,7 @@ class _HomePageState extends State<HomePage> {
   int session_score = 0;
   int maxScore = 0;
   int session_number = 0;
-  final int max_session_number = 1 + 1; // first game is session_number = 1
+  final int max_session_number = 10 + 1; // first game is session_number = 1
   bool loading = false;
 
   List<String> _allData = [];
@@ -153,12 +153,19 @@ class _HomePageState extends State<HomePage> {
     });
     // generate new word and set state
     print('next round hit');
-    print(loading);
     this.reorderable = true;
     this.session_number += 1;
-    this.query = _getRandomQuery();
 
-    _buildSuggestion();
+    if (session_number == max_session_number) {
+      // checkpoint round
+      setState(() {
+        loading = false;
+      });
+    } else {
+      // question rounds
+      this.query = _getRandomQuery();
+      _buildSuggestion();
+    }
   }
 
   void _checkScore() {
