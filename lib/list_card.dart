@@ -4,19 +4,39 @@ class ListViewCard extends StatefulWidget {
   final String phrase;
   final int index;
   final Key key;
+  final bool reorderable;
+  final colorLevel;
 
-  ListViewCard(this.phrase, this.index, this.key);
+  ListViewCard(this.phrase, this.index, this.reorderable, this.colorLevel, this.key);
 
   @override
   _ListViewCard createState() => _ListViewCard();
 }
 
 class _ListViewCard extends State<ListViewCard> {
+
+  Widget _getReorderWidget () {
+    const child = Padding(
+        padding: const EdgeInsets.fromLTRB(0, 0, 10, 0),
+        child: Icon(
+          Icons.reorder,
+          color: Colors.grey,
+          size: 30.0,));
+    Widget w = child;
+    if (widget.reorderable) {
+      w = ReorderableDragStartListener(
+          index: widget.index,
+          child: child
+      );
+    }
+    return w;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: EdgeInsets.all(4),
-      color: Colors.white,
+      color: (widget.reorderable || widget.colorLevel == null)? Colors.white : Colors.lime[widget.colorLevel],
       child: InkWell(
         splashColor: Colors.blue,
         onTap: () => {print("Item ${widget.phrase} selected.")},
@@ -52,16 +72,7 @@ class _ListViewCard extends State<ListViewCard> {
                 ],
               ),
             ),
-            ReorderableDragStartListener(
-              index: widget.index,
-              child: Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 10, 0),
-              child: Icon(
-                Icons.reorder,
-                color: Colors.grey,
-                size: 30.0,
-              )),
-            ),
+            _getReorderWidget(),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'http_service.dart';
@@ -11,10 +12,28 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final HttpService httpService = HttpService();
-  String query = 'initial';
+  String query = "";
   final _maxData = 4;
+  int session_score = 0;
+  int session_number = 0;
+  final int max_session_number = 10;
   List<String> _allData = [];
   List<String> _showData = [];
+  bool reorderable = true;
+  final card_color = {
+    0: 50,
+    1: 100,
+    2: 200,
+    3: 300
+  };
+  final List<String> phrasesDB = ['hi', 'how are you', 'what is a', 'covid is', 'unlike what'];
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _nextRound();
+  }
 
   void _updateMyItems(oldIndex, newIndex) {
     if (newIndex > oldIndex) {
@@ -22,6 +41,12 @@ class _HomePageState extends State<HomePage> {
     }
     final item = _showData.removeAt(oldIndex);
     _showData.insert(newIndex, item);
+  }
+
+  String _getRandomQuery () {
+    Random random = new Random();
+    int randInt = random.nextInt(phrasesDB.length);
+    return phrasesDB[randInt];
   }
 
   void _buildSuggestion() async {
@@ -63,22 +88,57 @@ class _HomePageState extends State<HomePage> {
 
   List<Widget> _makeRows() {
     List<Widget> rows = [];
+    Map<int, int> idxMap = _indexPositionMap();
     for (int idx = 0; idx < _showData.length; idx++) {
       String phrase = _showData[idx];
-      var row = ListViewCard(phrase, idx, ValueKey(phrase));
+      var colorLevel = card_color[idxMap[_allData.indexOf(phrase)]];
+      var row = ListViewCard(phrase, idx, this.reorderable, colorLevel, ValueKey(phrase));
       rows.add(row);
     }
     return rows;
   }
 
+  Map<int, int> _indexPositionMap () {
+    List<int> positions = _showData.map((word) => _allData.indexOf(word)).toList();
+    positions.sort();
+    var mapping = new Map<int, int>();
+    for (var i=0; i<positions.length; i++) {
+      mapping[positions[i]] = i;
+    }
+    return mapping;
+  }
+
+  void _checkNextAction () {
+    if (this.reorderable) {
+      _checkScore();
+    } else {
+      _nextRound();
+    }
+  }
+
+  void _nextRound() {
+    // generate new word and set state
+    this.reorderable = true;
+    this.query = _getRandomQuery();
+    setState(() {
+      _buildSuggestion();
+    });
+  }
+
   void _checkScore () {
+    this.reorderable = false;
     print('check score triggered');
+
     List<int> positions = _showData.map((word) => _allData.indexOf(word)).toList();
     int steps = _insertionSort(positions);
     int n = positions.length;
-    int worst_case = n * n;
-    int score = worst_case - steps;
+    int worstCase = (0.5*(n-1)*(n)).round();
+    int score = worstCase - steps;
     print("score $score");
+
+    setState(() {
+      session_score += score;
+    });
   }
 
   int _insertionSort (List<int> arr) {
@@ -99,6 +159,14 @@ class _HomePageState extends State<HomePage> {
     return steps;
   }
 
+  Widget _getNextIcon () {
+    Widget icon = Icon(Icons.check);
+    if (!this.reorderable) {
+      icon = Icon(Icons.arrow_forward);
+    }
+    return icon;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,23 +176,30 @@ class _HomePageState extends State<HomePage> {
         body: Column(
           // mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            // Container(
+            //     padding: EdgeInsets.all(10),
+            //     child: Row(
+            //       children: [
+            //         Expanded(
+            //             child: TextField(
+            //           decoration: InputDecoration(hintText: "Enter a search"),
+            //           onSubmitted: (String value) {
+            //             print("\nsubmitted: $value");
+            //             setState(() {
+            //               this.query = value;
+            //               _buildSuggestion();
+            //             });
+            //           },
+            //         ))
+            //       ],
+            //     )),
             Container(
-                padding: EdgeInsets.all(10),
-                child: Row(
-                  children: [
-                    Expanded(
-                        child: TextField(
-                      decoration: InputDecoration(hintText: "Enter a search"),
-                      onSubmitted: (String value) {
-                        print("\nsubmitted: $value");
-                        setState(() {
-                          this.query = value;
-                          _buildSuggestion();
-                        });
-                      },
-                    ))
-                  ],
-                )),
+              padding: EdgeInsets.fromLTRB(0, 30, 0, 30),
+              child: Text(
+                "Score $session_score",
+                style: TextStyle(fontSize: 30),
+              )
+            ),
             Expanded(
                 child: ReorderableListView(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -135,13 +210,14 @@ class _HomePageState extends State<HomePage> {
                       });
                     },
                     dragStartBehavior: DragStartBehavior.down,
-                    children: _makeRows()))
+                    children: _makeRows())
+            )
           ],
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: _checkScore,
+          onPressed: _checkNextAction,
           tooltip: 'Enter',
-          child: Icon(Icons.check)
+          child: _getNextIcon()
         ),
     );
   }
