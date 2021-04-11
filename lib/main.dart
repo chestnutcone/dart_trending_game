@@ -12,7 +12,9 @@ class MyApp extends StatelessWidget {
       title: 'Trending',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.orange,
+        primarySwatch: Colors.deepOrange,
+        primaryColor: Colors.deepOrange.shade200,
+        accentColor: Colors.deepOrange.shade200,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: HomePage(),
