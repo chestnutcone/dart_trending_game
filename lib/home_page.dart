@@ -37,8 +37,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _setup () async {
-    String csv = await rootBundle.loadString('assets/query2.csv');
-    phrasesDB = csv.split(',');
+    String csv = await rootBundle.loadString('assets/query3.txt');
+    phrasesDB = csv.split('\n');
     _nextRound();
   }
 
